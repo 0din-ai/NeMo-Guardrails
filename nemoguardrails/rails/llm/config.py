@@ -17,6 +17,7 @@
 
 import logging
 import os
+import re
 import warnings
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
@@ -468,9 +469,18 @@ class JailbreakDetectionConfig(BaseModel):
     prefix_suffix_perplexity_threshold: float = Field(
         default=1845.65, description="The prefix/suffix perplexity threshold."
     )
-    embedding: str = Field(
+    nim_url: Optional[str] = Field(
+        default=None,
+        description="Location of the NemoGuard JailbreakDetect NIM.",
+    )
+    nim_port: int = Field(
+        default=8000,
+        description="Port the NemoGuard JailbreakDetect NIM is listening on.",
+    )
+    embedding: Optional[str] = Field(
         default="nvidia/nv-embedqa-e5-v5",
-        description="Model to use for embedding-based detections.",
+        description="DEPRECATED: Model to use for embedding-based detections. Use NIM instead.",
+        deprecated=True,
     )
 
 
