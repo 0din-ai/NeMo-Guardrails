@@ -15,20 +15,20 @@ on:
   workflow_dispatch:
 
 jobs:
-  call-tests:
-    strategy:
-      matrix:
-        os: [Windows, macOS] # exclude Ubuntu as it is available in pr-tests
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-        include:
-          - os: Windows
-            image: windows-2022
-          - os: macOS
-            image: macos-14
-      fail-fast: false
+    call-tests:
+        strategy:
+            matrix:
+                os: [Windows, macOS] # exclude Ubuntu as it is available in pr-tests
+                python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+                include:
+                    - os: Windows
+                      image: windows-2022
+                    - os: macOS
+                      image: macos-14
+            fail-fast: false
 
-    uses: ./.github/workflows/_test.yml
-    with:
-      os: ${{ matrix.os }}
-      image: ${{ matrix.image }}
-      python-version: ${{ matrix.python-version }}
+        uses: ./.github/workflows/_test.yml
+        with:
+            os: ${{ matrix.os }}
+            image: ${{ matrix.image }}
+            python-version: ${{ matrix.python-version }}
