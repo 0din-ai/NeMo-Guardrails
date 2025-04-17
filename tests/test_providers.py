@@ -13,9 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .providers import (
-    get_community_chat_provider_names,
-    get_llm_provider_names,
-    register_chat_provider,
-    register_llm_provider,
-)
+import pytest
+
+from nemoguardrails.llm.providers.providers import _llm_providers
+
+
+def test_acall_method_added():
+    for provider_name, provider_cls in _llm_providers.items():
+        assert hasattr(provider_cls, "_acall"), f"_acall not added to {provider_name}"
+        assert callable(
+            getattr(provider_cls, "_acall")
+        ), f"_acall is not callable in {provider_name}"
