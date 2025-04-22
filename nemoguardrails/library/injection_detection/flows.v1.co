@@ -1,0 +1,5 @@
+define subflow injection detection
+  """
+  Reject, omit, or sanitize injection attempts from the bot.
+  """
+  $bot_message = execute injection_detection(text=$bot_message)

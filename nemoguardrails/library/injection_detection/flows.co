@@ -1,0 +1,7 @@
+# OUTPUT RAILS
+
+flow injection detection
+  """
+  Reject, omit, or sanitize injection attempts from the bot.
+  """
+  $bot_message = await InjectionDetectionAction(text=$bot_message)
