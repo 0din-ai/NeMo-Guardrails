@@ -34,7 +34,6 @@ from pydantic.fields import Field
 
 from nemoguardrails import utils
 from nemoguardrails.colang import parse_colang_file, parse_flow_elements
-from nemoguardrails.colang.v2_x.lang.colang_ast import Flow
 from nemoguardrails.colang.v2_x.lang.utils import format_colang_parsing_error_message
 from nemoguardrails.colang.v2_x.runtime.errors import ColangParsingError
 
@@ -305,6 +304,7 @@ class TaskPrompt(BaseModel):
     max_length: Optional[int] = Field(
         default=16000,
         description="The maximum length of the prompt in number of characters.",
+        ge=1,
     )
     mode: Optional[str] = Field(
         default=_default_config["prompting_mode"],
@@ -318,17 +318,16 @@ class TaskPrompt(BaseModel):
     max_tokens: Optional[int] = Field(
         default=None,
         description="The maximum number of tokens that can be generated in the chat completion.",
+        ge=1,
     )
 
     @root_validator(pre=True, allow_reuse=True)
     def check_fields(cls, values):
         if not values.get("content") and not values.get("messages"):
-            raise ValidationError("One of `content` or `messages` must be provided.")
+            raise ValueError("One of `content` or `messages` must be provided.")
 
         if values.get("content") and values.get("messages"):
-            raise ValidationError(
-                "Only one of `content` or `messages` must be provided."
-            )
+            raise ValueError("Only one of `content` or `messages` must be provided.")
 
         return values
 
