@@ -17,7 +17,6 @@
 
 import logging
 import os
-import re
 import warnings
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple, Union
@@ -621,6 +620,51 @@ class PatronusRailConfig(BaseModel):
     )
 
 
+class ClavataRailOptions(BaseModel):
+    """Configuration data for the Clavata API"""
+
+    policy: str = Field(
+        description="The policy alias to use when evaluating inputs or outputs.",
+    )
+
+    labels: List[str] = Field(
+        default_factory=list,
+        description="""A list of labels to match against the policy.
+        If no labels are provided, the overall policy result will be returned.
+        If labels are provided, only hits on the provided labels will be considered a hit.""",
+    )
+
+
+class ClavataRailConfig(BaseModel):
+    """Configuration data for the Clavata API"""
+
+    server_endpoint: str = Field(
+        default="https://gateway.app.clavata.ai:8443",
+        description="The endpoint for the Clavata API",
+    )
+
+    policies: Dict[str, str] = Field(
+        default_factory=dict,
+        description="A dictionary of policy aliases and their corresponding IDs.",
+    )
+
+    label_match_logic: Literal["ANY", "ALL"] = Field(
+        default="ANY",
+        description="""The logic to use when deciding whether the evaluation matched.
+        If ANY, only one of the configured labels needs to be found in the input or output.
+        If ALL, all configured labels must be found in the input or output.""",
+    )
+
+    input: Optional[ClavataRailOptions] = Field(
+        default=None,
+        description="Clavata configuration for an Input Guardrail",
+    )
+    output: Optional[ClavataRailOptions] = Field(
+        default=None,
+        description="Clavata configuration for an Output Guardrail",
+    )
+
+
 class RailsConfigData(BaseModel):
     """Configuration data for specific rails that are supported out-of-the-box."""
 
@@ -662,6 +706,11 @@ class RailsConfigData(BaseModel):
     fiddler: Optional[FiddlerGuardrails] = Field(
         default_factory=FiddlerGuardrails,
         description="Configuration for Fiddler Guardrails.",
+    )
+
+    clavata: Optional[ClavataRailConfig] = Field(
+        default_factory=ClavataRailConfig,
+        description="Configuration for Clavata.",
     )
 
 
