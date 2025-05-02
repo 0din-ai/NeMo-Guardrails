@@ -39,11 +39,12 @@ from nemoguardrails import RailsConfig
 from nemoguardrails.actions import action
 from nemoguardrails.actions.actions import ActionResult
 from nemoguardrails.library.injection_detection.actions import (
+    _check_yara_available,
+    _load_rules,
+    _omit_injection,
+    _reject_injection,
     _validate_unpack_config,
     injection_detection,
-    load_rules,
-    omit_injection,
-    reject_injection,
 )
 from tests.utils import TestChat
 
@@ -101,14 +102,14 @@ def test_load_custom_rules():
             """,
     )
     _action_option, yara_path, rule_names = _validate_unpack_config(config)
-    rules = load_rules(yara_path, rule_names)
+    rules = _load_rules(yara_path, rule_names)
     assert isinstance(rules, yara.Rules)
 
 
 def test_load_all_rules():
     config = RailsConfig.from_path(os.path.join(CONFIGS_FOLDER, "injection_detection"))
     _action_option, yara_path, rule_names = _validate_unpack_config(config)
-    rules = load_rules(yara_path, rule_names)
+    rules = _load_rules(yara_path, rule_names)
     assert isinstance(rules, yara.Rules)
 
 
@@ -204,7 +205,7 @@ def test_empty_injection_rules():
             """
     )
     _action_option, yara_path, rule_names = _validate_unpack_config(config)
-    rules = load_rules(yara_path, rule_names)
+    rules = _load_rules(yara_path, rule_names)
     assert rules is None
 
 
@@ -220,7 +221,7 @@ async def test_omit_injection_action():
         create_mock_yara_match("-- comment", "sqli"),
     ]
 
-    result = omit_injection(text=text, matches=mock_matches)
+    result = _omit_injection(text=text, matches=mock_matches)
 
     # all sql injection should be removed
     # NOTE: following rule does not get removed using sqli.yara
@@ -243,11 +244,11 @@ async def test_reject_injection_with_mismatched_action():
 
     # pathcing the load_rules function to return our mock rules
     with patch(
-        "nemoguardrails.library.injection_detection.actions.load_rules",
+        "nemoguardrails.library.injection_detection.actions._load_rules",
         return_value=mock_rules,
     ):
         sql_injection = "' OR 1 = 1"
-        result, _ = reject_injection(sql_injection, mock_rules)
+        result, _ = _reject_injection(sql_injection, mock_rules)
         assert result is True
 
 
@@ -263,11 +264,11 @@ async def test_multiple_injection_types():
     mock_rules = create_mock_rules(mock_matches)
 
     with patch(
-        "nemoguardrails.library.injection_detection.actions.load_rules",
+        "nemoguardrails.library.injection_detection.actions._load_rules",
         return_value=mock_rules,
     ):
         multi_injection = "' OR 1 = 1 <script>alert('xss')</script>"
-        result, _ = reject_injection(multi_injection, mock_rules)
+        result, _ = _reject_injection(multi_injection, mock_rules)
         assert result is True
 
 
@@ -279,21 +280,21 @@ async def test_edge_cases():
     mock_rules = create_mock_rules([])
 
     with patch(
-        "nemoguardrails.library.injection_detection.actions.load_rules",
+        "nemoguardrails.library.injection_detection.actions._load_rules",
         return_value=mock_rules,
     ):
         # Test with empty string
-        result, _ = reject_injection("", mock_rules)
+        result, _ = _reject_injection("", mock_rules)
         assert result is False
 
         # no issue with very long str
         long_string = "a" * 10000
-        result, _ = reject_injection(long_string, mock_rules)
+        result, _ = _reject_injection(long_string, mock_rules)
         assert result is False
 
         # no issue with special chars
         special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
-        result, _ = reject_injection(special_chars, mock_rules)
+        result, _ = _reject_injection(special_chars, mock_rules)
         assert result is False
 
 
@@ -495,3 +496,18 @@ async def test_sanitize_action_not_implemented():
 
                     """
         )
+
+
+def test_yara_import_error():
+    """Test that appropriate error is raised when yara module is not available."""
+
+    with patch("nemoguardrails.library.injection_detection.actions.yara", None):
+        with pytest.raises(ImportError) as exc_info:
+            _check_yara_available()
+        assert str(exc_info.value) == (
+            "The yara module is required for injection detection. "
+            "Please install it using: pip install yara-python"
+        )
+
+    with patch("nemoguardrails.library.injection_detection.actions.yara", yara):
+        _check_yara_available()
