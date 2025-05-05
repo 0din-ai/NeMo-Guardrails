@@ -453,6 +453,15 @@ class OutputRails(BaseModel):
         description="Configuration for streaming output rails.",
     )
 
+    apply_to_reasoning_traces: bool = Field(
+        default=False,
+        description=(
+            "If True, output rails will apply guardrails to both reasoning traces and output response. "
+            "If False, output rails will only apply guardrails to the output response excluding the reasoning traces, "
+            "thus keeping reasoning traces unaltered."
+        ),
+    )
+
 
 class RetrievalRails(BaseModel):
     """Configuration of retrieval rails."""
