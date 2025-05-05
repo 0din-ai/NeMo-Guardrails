@@ -38,6 +38,7 @@ def init_llm_model(
     Args:
         model_name: Name of the model to initialize
         provider_name: Name of the provider to use
+        mode: Literal taking either "chat" or "text" values
         kwargs: Additional arguments to pass to the model initialization
 
     Returns:
@@ -48,7 +49,10 @@ def init_llm_model(
     """
     # currently we only support LangChain models
     return init_langchain_model(
-        model_name=model_name, provider_name=provider_name, mode=mode, kwargs=kwargs
+        model_name=model_name,
+        provider_name=provider_name,
+        mode=mode,
+        kwargs=kwargs,
     )
 
 

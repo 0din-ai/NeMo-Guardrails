@@ -377,6 +377,13 @@ class LLMRails:
                 kwargs = llm_config.parameters or {}
                 mode = llm_config.mode
 
+                # If the optional API Key Environment Variable is set, store
+                # this in the `kwargs` for the current model
+                if llm_config.api_key_env_var:
+                    api_key = os.environ.get(llm_config.api_key_env_var)
+                    if api_key:
+                        kwargs["api_key"] = api_key
+
                 llm_model = init_llm_model(
                     model_name=model_name,
                     provider_name=provider_name,

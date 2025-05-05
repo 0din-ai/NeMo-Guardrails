@@ -103,7 +103,9 @@ def try_initialization_method(
             f"Trying initializer: {initializer.init_method.__name__} for model: {model_name} and provider: {provider_name}"
         )
         result = initializer.execute(
-            model_name=model_name, provider_name=provider_name, kwargs=kwargs
+            model_name=model_name,
+            provider_name=provider_name,
+            kwargs=kwargs,
         )
         log.debug(f"Initializer {initializer.init_method.__name__} returned: {result}")
         if result is not None:
@@ -213,7 +215,7 @@ def _init_chat_completion_model(
 
     # just to document the expected behavior
     # we don't support pre-0.2.7 versions of langchain-core it is in
-    # line wiht our pyproject.toml
+    # line with our pyproject.toml
     package_version = version("langchain-core")
 
     if _parse_version(package_version) < (0, 2, 7):
@@ -225,6 +227,7 @@ def _init_chat_completion_model(
         return init_chat_model(
             model=model_name,
             model_provider=provider_name,
+            **kwargs,
         )
     except ValueError:
         raise
@@ -250,7 +253,6 @@ def _init_text_completion_model(
     if provider_cls is None:
         raise ValueError()
     kwargs = _update_model_kwargs(provider_cls, model_name, kwargs)
-
     return provider_cls(**kwargs)
 
 
