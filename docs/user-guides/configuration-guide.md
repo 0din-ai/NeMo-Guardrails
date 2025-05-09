@@ -75,23 +75,29 @@ models:
 
 The meaning of the attributes is as follows:
 
-- `type`: is set to "main" indicating the main LLM model.
-- `engine`: the LLM provider, e.g., `openai`, `huggingface_endpoint`, `self_hosted`, etc.
-- `model`: the name of the model, e.g., `gpt-3.5-turbo-instruct`.
-- `parameters`: any additional parameters, e.g., `temperature`, `top_k`, etc.
+- `type`: is set to _main_ to indicate the model is the application LLM.
+- `engine`: the LLM provider, such as `openai`, `huggingface_endpoint`, `self_hosted`, and so on.
+- `model`: the name of the model, such as `gpt-3.5-turbo-instruct`.
+- `parameters`: arguments to pass to the LangChain class used by the LLM provider.
+  For example, when `engine` is set to `openai`, the toolkit loads the `ChatOpenAI` class.
+  The [ChatOpenAI class](https://python.langchain.com/api_reference/openai/chat_models/langchain_openai.chat_models.base.ChatOpenAI.html)
+  supports `temperature`, `max_tokens`, and other class-specific arguments.
 
 #### Supported LLM Providers
 
-You can use any LLM provider that is supported by LangChain, e.g., `ai21`, `aleph_alpha`, `anthropic`, `anyscale`, `azure`, `cohere`, `huggingface_endpoint`, `huggingface_hub`, `openai`, `self_hosted`, `self_hosted_hugging_face`. Check out the LangChain official documentation for the full list.
+You can use any LLM provider that is supported by LangChain, such as `ai21`, `aleph_alpha`, `anthropic`, `anyscale`, `azure`, `cohere`, `huggingface_endpoint`, `huggingface_hub`, `openai`, `self_hosted`, `self_hosted_hugging_face`. Check out the LangChain official documentation for the full list.
 
-In addition to the above LangChain providers, connecting to [Nvidia NIMs](https://docs.nvidia.com/nim/index.html) is supported using the engine `nvidia_ai_endpoints` or synonymously `nim`, for both Nvidia hosted NIMs (accessible through an Nvidia AI Enterprise license) and for locally downloaded and elf-hosted NIM containers.
+In addition to the above LangChain providers, connecting to [NVIDIA NIM microservices](https://docs.nvidia.com/nim/index.html) is supported using the `nim` engine.
+The `nvidia_ai_endpoints` engine is an alias for the `nim` engine.
+The engine provides access to locally-deployed NIM microservices or NVIDIA hosted models that you can view from <https://build.nvidia.com/models>.
 
-```{note}
-To use any of the providers, you must install additional packages; when you first try to use a configuration with a new provider, you typically receive an error from LangChain that instructs which packages you should install.
-```
+To use any of the LLM providers, you must install the LangChain package for the provider.
+When you first try to use a configuration with a new provider, you typically receive an error from LangChain that instructs which packages you should install.
 
 ```{important}
-Although you can instantiate any of the previously mentioned LLM providers, depending on the capabilities of the model, the NeMo Guardrails toolkit works better with some providers than others. The toolkit includes prompts that have been optimized for certain types of models, such as models provided by`openai` or `llama3` models. For others, you can optimize the prompts yourself following the information in the [LLM Prompts](#llm-prompts) section.
+Although you can instantiate any of the previously mentioned LLM providers, depending on the capabilities of the model, the NeMo Guardrails toolkit works better with some providers than others.
+The toolkit includes prompts that have been optimized for certain types of models, such as models provided by `openai` or `llama3` models.
+For others, you can optimize the prompts yourself following the information in the [LLM Prompts](#llm-prompts) section.
 ```
 
 #### Exploring Available Providers
@@ -797,7 +803,7 @@ rails:
 
 On a typical RAG (Retrieval Augmented Generation) scenario, using this option brings a 3x improvement in terms of latency and uses 37% fewer tokens.
 
-**IMPORTANT**: currently, the *Single Call Mode* can only predict bot messages as next steps. This means that if you want the LLM to generalize and decide to execute an action on a dynamically generated user canonical form message, it will not work.
+**IMPORTANT**: currently, the _Single Call Mode_ can only predict bot messages as next steps. This means that if you want the LLM to generalize and decide to execute an action on a dynamically generated user canonical form message, it will not work.
 
 #### Embeddings Only
 
