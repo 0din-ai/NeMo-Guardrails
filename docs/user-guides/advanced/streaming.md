@@ -1,9 +1,11 @@
 # Streaming
 
-To use a guardrails configuration in streaming mode, the following must be met:
+If the application LLM supports streaming, you can configure NeMo Guardrails to stream tokens as well.
 
-1. The main LLM must support streaming.
-2. There are no output rails.
+For information about configuring streaming with output guardrails, refer to the following:
+
+- For configuration, refer to [streaming output configuration](../../user-guides/configuration-guide.md#streaming-output-configuration).
+- For sample Python client code, refer to [streaming output](../../getting-started/5-output-rails/README.md#streaming-output).
 
 ## Configuration
 
@@ -26,6 +28,7 @@ nemoguardrails chat --config=examples/configs/streaming --streaming
 ### Python API
 
 You can use the streaming directly from the python API in two ways:
+
 1. Simple: receive just the chunks (tokens).
 2. Full: receive both the chunks as they are generated and the full response at the end.
 
@@ -73,9 +76,11 @@ For the complete working example, check out this [demo script](https://github.co
 ### Server API
 
 To make a call to the NeMo Guardrails Server in streaming mode, you have to set the `stream` parameter to `True` inside the JSON body. For example, to get the completion for a chat session using the `/v1/chat/completions` endpoint:
+
 ```
 POST /v1/chat/completions
 ```
+
 ```json
 {
     "config_id": "some_config_id",
