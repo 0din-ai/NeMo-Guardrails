@@ -1,7 +1,7 @@
 models:
   - type: main
     engine: nvidia_ai_endpoints
-    model_name: meta/llama-3.3-70b-instruct
+    model: meta/llama-3.3-70b-instruct
 
   - type: content_safety
     engine: nvidia_ai_endpoints
@@ -15,6 +15,7 @@ rails:
     flows:
       - content safety check output $model=content_safety
     streaming:
+      enabled: True
       chunk_size: 200
       context_size: 50
 

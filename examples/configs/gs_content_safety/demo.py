@@ -58,33 +58,18 @@ with open("demo-out.txt", "w") as sys.stdout:
     print("# end-generate-response\n")
 sys.stdout = stdout
 
-# start-get-duration
-explain_info = None
-
-async def stream_response(messages):
-    async for chunk in rails.stream_async(messages=messages):
-        global explain_info
-        if explain_info is None:
-            explain_info = rails.explain_info
-        print(chunk, end="")
-    print()
-
+# start-safe-response
 messages=[{
     "role": "user",
     "content": "Tell me about Cape Hatteras National Seashore in 50 words or less."
 }]
 
 asyncio.run(stream_response(messages))
-
-explain_info.print_llm_calls_summary()
-# end-get-duration
+# end-safe-response
 
 stdout = sys.stdout
 with open("demo-out.txt", "a") as sys.stdout:
-    print("\n# start-get-duration")
+    print("\n# start-safe-response")
     asyncio.run(stream_response(messages))
-    print("# end-get-duration\n")
-    print("\n# start-explain-info")
-    explain_info.print_llm_calls_summary()
-    print("# end-explain-info\n")
+    print("# end-safe-response\n")
 sys.stdout = stdout

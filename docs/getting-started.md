@@ -45,7 +45,7 @@ The sample code uses the [Llama 3.3 70B Instruct model](https://build.nvidia.com
    The `models` key in the `config.yml` file configures the LLM model.
    For more information about the key, refer to [](./user-guides/configuration-guide.md#the-llm-model).
 
-1. Create a prompts file, such as `config/prompts.yml`, ([download](../examples/configs/gs_content_safety/prompts.yml)), with contents like the following partial example:
+1. Create a prompts file, such as `config/prompts.yml`, ([download](path:../examples/configs/gs_content_safety/config/prompts.yml)), with contents like the following partial example:
 
    ```{literalinclude} ../examples/configs/gs_content_safety/config/prompts.yml
    :language: yaml
@@ -76,30 +76,30 @@ The sample code uses the [Llama 3.3 70B Instruct model](https://build.nvidia.com
    :end-before: "# end-generate-response"
    ```
 
-## Timing and Token Information
+1. Send a safe request and generate a response:
 
-The following modification of the sample code shows the timing and token information for the guardrail.
+   ```{literalinclude} ../examples/configs/gs_content_safety/demo.py
+   :language: python
+   :start-after: "# start-safe-response"
+   :end-before: "# end-safe-response"
+   ```
 
-- Generate a response and print the timing and token information:
+   _Example Output_
 
-  ```{literalinclude} ../examples/configs/gs_content_safety/demo.py
-  :language: python
-  :start-after: "# start-get-duration"
-  :end-before: "# end-get-duration"
-  ```
+   ```{literalinclude} ../examples/configs/gs_content_safety/demo-out.txt
+   :language: text
+   :start-after: "# start-safe-response"
+   :end-before: "# end-safe-response"
+   ```
 
-  _Example Output_
+## Next Steps
 
-  ```{literalinclude} ../examples/configs/gs_content_safety/demo-out.txt
-  :language: text
-  :start-after: "# start-get-duration"
-  :end-before: "# end-get-duration"
-  ```
+- Run the `content_safety_tutorial.ipynb` notebook from the
+  [example notebooks](https://github.com/NVIDIA/NeMo-Guardrails/tree/develop/examples/notebooks)
+  directory of the GitHub repository.
+  The notebook compares LLM responses with and without safety checks and classifies responses
+  to sample prompts as _safe_ or _unsafe_.
+  The notebook shows how to measure the performance of the checks, focusing on how many unsafe
+  responses are blocked and how many safe responses are incorrectly blocked.
 
-  The timing and token information is available with the `print_llm_calls_summary()` method.
-
-  ```{literalinclude} ../examples/configs/gs_content_safety/demo-out.txt
-  :language: text
-  :start-after: "# start-explain-info"
-  :end-before: "# end-explain-info"
-  ```
+- Refer to [](user-guides/configuration-guide.md) for information about the `config.yml` file.
