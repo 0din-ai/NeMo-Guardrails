@@ -818,13 +818,14 @@ You can enable streaming to begin receiving responses from the output rail soone
 
 You must set the top-level `streaming: True` field in your `config.yml` file.
 
-For each output rail, add the `streaming` field and configuration parameters.
+For the output rails, add the `streaming` field and configuration parameters.
 
 ```yaml
 rails:
   output:
     - rail name
   streaming:
+    enabled: True
     chunk_size: 200
     context_size: 50
     stream_first: True
@@ -873,6 +874,11 @@ The following table describes the subfields for the `streaming` field:
     Small values might fail to detect cross-chunk violations.
     Specifying approximately 25% of `chunk_size` provides a good compromise.
   - `50`
+
+* - streaming.enabled
+  - When set to `True`, the toolkit executes output rails in streaming mode.
+
+  - `False`
 
 * - streaming.stream_first
   - When set to `False`, the toolkit applies the output rails to the chunks before streaming them to the client.
