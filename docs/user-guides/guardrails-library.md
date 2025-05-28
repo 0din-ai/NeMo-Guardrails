@@ -952,29 +952,38 @@ Times reported below in are **averages** and are reported in milliseconds.
 | Docker     | 2057  | 115 |
 | In-Process | 3227  | 157 |
 
-
 ### Injection Detection
-NeMo Guardrails offers detection of potential injection attempts (_e.g._ code injection, cross-site scripting, SQL injection, template injection) using [YARA rules](https://yara.readthedocs.io/en/stable/index.html), a technology familiar to many security teams.
-NeMo Guardrails ships with some basic rules for the following categories:
-* Code injection (Python)
-* Cross-site scripting (Markdown and Javascript)
-* SQL injection
-* Template injection (Jinja)
 
-Additional rules can be added by including them in the `library/injection_detection/yara_rules` folder or specifying a `yara_path` with all the rules.
+NeMo Guardrails offers detection of potential exploitation attempts by using injection such as code injection, cross-site scripting, SQL injection, and template injection.
+Injection detection is primarily intended to be used in agentic systems to enhance other security controls as part of a defense-in-depth strategy.
 
-Injection detection has a number of action options that indicate what to do when potential exploitation is detected.
-Two options are currently available: `reject` and `omit`, with `sanitize` planned for a future release.
+The first part of injection detection is [YARA rules](https://yara.readthedocs.io/en/stable/index.html).
+A YARA rule specifies a set of strings--text or binary patterns--to match and a Boolean expression that specifies the logic of the rule.
+YARA rules are a technology that is familiar to many security teams.
 
-* `reject` will return a message to the user indicating that their query could not be handled and they should try again.
-* `omit` will return the model's output, removing the offending detected content.
-* `sanitize` attempts to "de-fang" the malicious content, returning the output in a way that is less likely to result exploitation. This action is generally considered unsuitable for production use.
+The second part of injection detection is specifying the action to take when a rule is triggered.
+You can specify to *reject* the text and return "I'm sorry, the desired output triggered rule(s) designed to mitigate exploitation of {detections}."
+Rejecting the output is the safest action and most appropriate for production deployments.
+As an alternative to rejecting the output, you can specify to *omit* the triggering text from the response.
+
+#### About the Default Rules
+
+By default, NeMo Guardrails provides the following rules:
+
+- Code injection (Python): Recommended if the LLM output is used as an argument to downstream functions or passed to a code interpreter.
+- SQL injection: Recommended if the LLM output is used as part of a SQL query to a database.
+- Template injection (Jinja): Recommended for use if LLM output is rendered using the Jinja templating language.
+  This rule is usually paired with code injection rules.
+- Cross-site scripting (Markdown and Javascript): Recommended if the LLM output is rendered directly in HTML or Markdown.
+
+You can view the default rules in the [yara_rules directory](https://github.com/NVIDIA/NeMo-Guardrails/tree/develop/nemoguardrails/library/injection_detection/yara_rules) of the GitHub repository.
 
 #### Configuring Injection Detection
-To activate injection detection, you must include the `injection detection` output flow.
+
+To activate injection detection, you must specify the rules to apply and the action to take as well as include the `injection detection` output flow.
 As an example config:
 
-```colang
+```yaml
 rails:
   config:
     injection_detection:
@@ -991,14 +1000,89 @@ rails:
       - injection detection
 ```
 
-**SECURITY WARNING:** It is _strongly_ advised that the `sanitize` action not be used in production systems, as there is no guarantee of its efficacy, and it may lead to adverse security outcomes.
+Refer to the following table for the `rails.config.injection_detection` field syntax reference:
 
-This rail is primarily intended to be used in agentic systems to _enhance_ other security controls as part of a defense in depth strategy.
-The provided rules are recommended to be used in the following settings:
-* `code`: Recommended if the LLM's output will be used as an argument to downstream functions or passed to a code interpreter.
-* `sqli`: Recommended if the LLM's output will be used as part of a SQL query to a database
-* `template`: Recommended for use if LLM output is rendered using templating languages like Jinja. This rule should usually be paired with `code` rules.
-* `xss`: Recommended if LLM output will be rendered directly in HTML or Markdown
+```{list-table}
+:header-rows: 1
 
-The included rules are in no way comprehensive.
-They can and should be extended by security teams for use in your application's particular context and paired with additional security controls.
+* - Field
+  - Description
+  - Default Value
+
+* - `injections`
+  - Specifies the injection detection rules to use.
+    The following injections are part of the library:
+
+    - `code` for Python code injection
+    - `sqli` for SQL injection
+    - `template` for Jinja template injection
+    - `xss` for cross-site scripting
+  - None (required)
+
+* - `action`
+  - Specifies the action to take when injection is detected.
+    Refer to the following actions:
+
+    - `reject` returns a message to the user indicating that the query could not be handled and they should try again.
+    - `omit` returns the model response, removing the offending detected content.
+  - None (required)
+
+* - `yara_path`
+  - Specifies the path to a directory that contains custom YARA rules.
+  - `library/injection_detection/yara_rules` in the NeMo Guardrails package.
+
+* - `yara_rules`
+  - Specifies inline YARA rules.
+    The field is a dictionary that maps rule names to the rules.
+    The rules use the string data type.
+
+    ```yaml
+    yara_rules:
+      <inline-rule-name>: |-
+        <inline-rule-content>
+    ```
+
+    If specified, these inline rules override the rules found in the `yara_path` field.
+  - None
+```
+
+For information about writing YARA rules, refer to the [YARA documentation](https://yara.readthedocs.io/en/stable/index.html).
+
+#### Example
+
+Before you begin, install the `yara-python` package or you can install the NeMo Guardrails package with `pip install nemoguardrails[jailbreak]`.
+
+1. Set your NVIDIA API key as an environment variable:
+
+   ```console
+   $ export NVIDIA_API_KEY=<nvapi-...>
+   ```
+
+1. Create a configuration directory, such as `config`, and add a `config.yml` file with contents like the following:
+
+   ```{literalinclude} ../../examples/configs/injection_detection/config/config.yml
+   :language: yaml
+   ```
+
+1. Load the guardrails configuration:
+
+   ```{literalinclude} ../../examples/configs/injection_detection/demo.py
+   :language: python
+   :start-after: "# start-load-config"
+   :end-before: "# end-load-config"
+   ```
+
+1. Send a possibly unsafe request:
+
+   ```{literalinclude} ../../examples/configs/injection_detection/demo.py
+   :language: python
+   :start-after: "# start-unsafe-response"
+   :end-before: "# end-unsafe-response"
+   ```
+
+   *Example Output*
+
+   ```{literalinclude} ../../examples/configs/injection_detection/demo-out.txt
+   :start-after: "# start-unsafe-response"
+   :end-before: "# end-unsafe-response"
+   ```
