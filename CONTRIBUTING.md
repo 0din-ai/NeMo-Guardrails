@@ -114,7 +114,9 @@ To get started quickly, follow the steps below.
    python3 --version
    ```
 
-> Note: we suggest you use `pyenv` to manage your Python versions. You can find the installation instructions [here](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation).
+   > Note: we suggest you use `pyenv` to manage your Python versions. You can find the installation instructions [here](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation).
+
+   Also install `g++` and `python3-dev` packages as dependencies to Annoy.
 
 2. Clone the project repository:
 
