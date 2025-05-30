@@ -18,6 +18,7 @@
 About NeMo Guardrails <self>
 getting-started/installation-guide
 getting-started.md
+release-notes.md
 ```
 
 ```{toctree}

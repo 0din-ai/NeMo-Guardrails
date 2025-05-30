@@ -63,6 +63,15 @@ exclude_patterns = [
     "_build/**",
 ]
 
+myst_url_schemes = {
+    "http": None,
+    "https": None,
+    "pr": {
+        "url": "https://github.com/NVIDIA/NeMo-Guardrails/pull/{{path}}",
+        "title": "PR #{{path}}",
+    },
+}
+
 # intersphinx_mapping = {
 #     'gpu-op': ('https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest', None),
 # }
