@@ -47,7 +47,7 @@ exclude_patterns = [
 ]
 
 myst_linkify_fuzzy_links = False
-myst_heading_anchors = 3
+myst_heading_anchors = 4
 myst_enable_extensions = [
     "deflist",
     "dollarmath",
