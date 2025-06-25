@@ -556,7 +556,7 @@ class JailbreakDetectionConfig(BaseModel):
 
     server_endpoint: Optional[str] = Field(
         default=None,
-        description="The endpoint for the jailbreak detection heuristics server.",
+        description="The endpoint for the jailbreak detection heuristics/model container.",
     )
     length_per_perplexity_threshold: float = Field(
         default=89.79, description="The length/perplexity threshold."
@@ -564,19 +564,41 @@ class JailbreakDetectionConfig(BaseModel):
     prefix_suffix_perplexity_threshold: float = Field(
         default=1845.65, description="The prefix/suffix perplexity threshold."
     )
+    nim_base_url: Optional[str] = Field(
+        default=None,
+        description="Base URL for jailbreak detection model. Example: http://localhost:8000/v1",
+    )
+    nim_server_endpoint: Optional[str] = Field(
+        default="classify",
+        description="Classification path uri. Defaults to 'classify' for NemoGuard JailbreakDetect.",
+    )
+    api_key_env_var: Optional[str] = Field(
+        default=None,
+        description="Environment variable containing API key for jailbreak detection model",
+    )
+    # legacy fields, keep for backward comp with deprecation warnings
     nim_url: Optional[str] = Field(
         default=None,
-        description="Location of the NemoGuard JailbreakDetect NIM.",
+        deprecated="Use 'nim_base_url' instead. This field will be removed in a future version.",
+        description="DEPRECATED: Use nim_base_url instead",
     )
-    nim_port: int = Field(
-        default=8000,
-        description="Port the NemoGuard JailbreakDetect NIM is listening on.",
+    nim_port: Optional[int] = Field(
+        default=None,
+        deprecated="Include port in 'nim_base_url' instead. This field will be removed in a future version.",
+        description="DEPRECATED: Include port in nim_base_url instead",
     )
     embedding: Optional[str] = Field(
-        default="nvidia/nv-embedqa-e5-v5",
-        description="DEPRECATED: Model to use for embedding-based detections. Use NIM instead.",
-        deprecated=True,
+        default=None,
+        deprecated="This field is no longer used.",
     )
+
+    @model_validator(mode="after")
+    def migrate_deprecated_fields(self) -> "JailbreakDetectionConfig":
+        """Migrate deprecated nim_url/nim_port fields to nim_base_url format."""
+        if self.nim_url and not self.nim_base_url:
+            port = self.nim_port or 8000
+            self.nim_base_url = f"http://{self.nim_url}:{port}/v1"
+        return self
 
 
 class AutoAlignOptions(BaseModel):

@@ -91,21 +91,24 @@ def test_model_based_classifier_missing_deps(monkeypatch):
             models.JailbreakClassifier("fake_model_path.pkl")
 
 
-# Test 4: Error when classifier_path is None
+# Test 4: Return None when EMBEDDING_CLASSIFIER_PATH is not set
 
 
-def test_initialize_model_with_none_classifier_path():
+def test_initialize_model_with_none_classifier_path(monkeypatch):
     """
-    initialize_model should raise EnvironmentError when classifier_path is None.
+    initialize_model should return None when EMBEDDING_CLASSIFIER_PATH is not set.
     """
     import nemoguardrails.library.jailbreak_detection.model_based.checks as checks
 
-    with pytest.raises(EnvironmentError) as exc_info:
-        checks.initialize_model(classifier_path=None)
+    # Clear the LRU cache to ensure fresh test
+    checks.initialize_model.cache_clear()
 
-    assert "Please set the EMBEDDING_CLASSIFIER_PATH environment variable" in str(
-        exc_info.value
-    )
+    # Mock environment variable to be None
+    monkeypatch.setenv("EMBEDDING_CLASSIFIER_PATH", "")
+    monkeypatch.delenv("EMBEDDING_CLASSIFIER_PATH", raising=False)
+
+    result = checks.initialize_model()
+    assert result is None
 
 
 # Test 5: SnowflakeEmbed initialization and call with torch imports
@@ -202,3 +205,142 @@ def test_check_jailbreak_without_classifier(monkeypatch):
     assert result == {"jailbreak": False, "score": -0.5}
     mock_initialize_model.assert_called_once()
     mock_classifier.assert_called_once_with("safe prompt")
+
+
+# Test 8: Check jailbreak raises RuntimeError when no classifier available
+
+
+def test_check_jailbreak_no_classifier_available(monkeypatch):
+    """
+    Test check_jailbreak function raises RuntimeError when initialize_model returns None.
+    """
+    import nemoguardrails.library.jailbreak_detection.model_based.checks as checks
+
+    # Mock initialize_model to return None (no classifier available)
+    mock_initialize_model = mock.MagicMock(return_value=None)
+    monkeypatch.setattr(checks, "initialize_model", mock_initialize_model)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        checks.check_jailbreak("test prompt")
+
+    assert "No jailbreak classifier available" in str(exc_info.value)
+    assert "EMBEDDING_CLASSIFIER_PATH" in str(exc_info.value)
+    mock_initialize_model.assert_called_once()
+
+
+# Test 9: Test initialize_model with valid path
+
+
+def test_initialize_model_with_valid_path(monkeypatch):
+    """
+    Test initialize_model with a valid classifier path.
+    """
+    from pathlib import Path
+
+    import nemoguardrails.library.jailbreak_detection.model_based.checks as checks
+
+    checks.initialize_model.cache_clear()
+
+    # mock environment variable
+    test_path = "/fake/path/to/model"
+    monkeypatch.setenv("EMBEDDING_CLASSIFIER_PATH", test_path)
+
+    # mock JailbreakClassifier
+    mock_classifier = mock.MagicMock()
+    mock_jailbreak_classifier_class = mock.MagicMock(return_value=mock_classifier)
+    monkeypatch.setattr(
+        "nemoguardrails.library.jailbreak_detection.model_based.models.JailbreakClassifier",
+        mock_jailbreak_classifier_class,
+    )
+
+    result = checks.initialize_model()
+
+    assert result == mock_classifier
+
+    expected_path = str(Path(test_path).joinpath("snowflake.pkl"))
+    mock_jailbreak_classifier_class.assert_called_once_with(expected_path)
+
+
+# Test 10: Test that NvEmbedE5 class no longer exists
+
+
+def test_nv_embed_e5_removed():
+    """
+    Test that NvEmbedE5 class has been removed from the models module.
+    """
+    import nemoguardrails.library.jailbreak_detection.model_based.models as models
+
+    assert not hasattr(models, "NvEmbedE5")
+
+
+# Test 11: Test SnowflakeEmbed still exists and works
+
+
+def test_snowflake_embed_still_available():
+    """
+    Test that SnowflakeEmbed class is still available.
+    """
+    import nemoguardrails.library.jailbreak_detection.model_based.models as models
+
+    # This class should still exist
+    assert hasattr(models, "SnowflakeEmbed")
+
+
+# Test 12: Test initialize_model with logging
+
+
+def test_initialize_model_logging(monkeypatch, caplog):
+    """
+    Test that initialize_model logs warning when path is not set.
+    """
+    import logging
+
+    import nemoguardrails.library.jailbreak_detection.model_based.checks as checks
+
+    # clear the LRU cache to ensure fresh test
+    checks.initialize_model.cache_clear()
+
+    # set log level to capture warnings
+    caplog.set_level(logging.WARNING)
+
+    # mock environment variable to be None
+    monkeypatch.delenv("EMBEDDING_CLASSIFIER_PATH", raising=False)
+
+    result = checks.initialize_model()
+
+    assert result is None
+    assert "No embedding classifier path set" in caplog.text
+    assert "Server /model endpoint will not work" in caplog.text
+
+
+# Test 13: Test check_jailbreak with explicit None classifier
+
+
+def test_check_jailbreak_explicit_none_classifier():
+    """
+    Test check_jailbreak when explicitly passed None as classifier.
+    """
+    import nemoguardrails.library.jailbreak_detection.model_based.checks as checks
+
+    with pytest.raises(RuntimeError) as exc_info:
+        checks.check_jailbreak("test prompt", classifier=None)
+
+    assert "No jailbreak classifier available" in str(exc_info.value)
+
+
+# Test 14: Test check_jailbreak preserves original behavior with valid classifier
+
+
+def test_check_jailbreak_valid_classifier_preserved():
+    """
+    Test that check_jailbreak still works normally with a valid classifier.
+    """
+    import nemoguardrails.library.jailbreak_detection.model_based.checks as checks
+
+    mock_classifier = mock.MagicMock()
+    mock_classifier.return_value = (True, 0.95)
+
+    result = checks.check_jailbreak("malicious prompt", classifier=mock_classifier)
+
+    assert result == {"jailbreak": True, "score": 0.95}
+    mock_classifier.assert_called_once_with("malicious prompt")

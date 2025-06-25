@@ -50,20 +50,60 @@ def check_jailbreak_nim_availability():
         llm_task_manager = LLMTaskManager(config=config)
 
         # Check if NIM URL is configured
-        nim_url = llm_task_manager.config.rails.config.jailbreak_detection.nim_url
+        nim_url = llm_task_manager.config.rails.config.jailbreak_detection.nim_base_url
         if nim_url is None:
-            return False, "JailbreakDetect NIM URL is not configured in the test config"
+            return (
+                False,
+                "JailbreakDetect NIM base URL is not configured in the test config",
+            )
 
-        # Check if NIM port is configured correctly
-        nim_port = llm_task_manager.config.rails.config.jailbreak_detection.nim_port
-        if nim_port is None or nim_port < 1 or nim_port > 65535:
-            return False, f"Invalid JailbreakDetect NIM port: {nim_port}"
+        # Check if NIM endpoint is configured correctly
+        nim_endpoint = (
+            llm_task_manager.config.rails.config.jailbreak_detection.nim_server_endpoint
+        )
+        if not isinstance(nim_endpoint, str):
+            return False, f"Invalid JailbreakDetect NIM server endpoint: {nim_endpoint}"
+
+        # Check that NIM api_key_env_var is set up correctly
+        test_key = "test_key"
+        os.environ["JB_NIM_TEST"] = test_key
+        api_key_env_var = (
+            llm_task_manager.config.rails.config.jailbreak_detection.api_key_env_var
+        )
+        if not os.getenv(api_key_env_var) == test_key:
+            return (
+                False,
+                f"Invalid JailbreakDetect environment variable: {api_key_env_var}",
+            )
 
         # Basic availability check passed
         return True, ""
 
     except Exception as e:
         return False, f"Error checking JailbreakDetect NIM availability: {str(e)}"
+
+
+def test_jailbreak_nim_deprecated():
+    """Check if the deprecated JailbreakDetect config options work properly."""
+    config = RailsConfig.from_content(
+        """
+        define user express greeting
+          "hello"
+        """,
+        """
+        rails:
+          config:
+            jailbreak_detection:
+              server_endpoint: ""
+              nim_url: "0.0.0.0"
+              nim_port: "8000"
+        """,
+    )
+    llm_task_manager = LLMTaskManager(config=config)
+    nim_url = llm_task_manager.config.rails.config.jailbreak_detection.nim_base_url
+    assert (
+        nim_url == "http://0.0.0.0:8000/v1"
+    ), "NIM deprecated url/port setup not loaded!"
 
 
 JAILBREAK_SETUP_PRESENT, JAILBREAK_SKIP_REASON = check_jailbreak_nim_availability()

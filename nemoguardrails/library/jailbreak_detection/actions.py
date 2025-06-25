@@ -29,6 +29,7 @@
 # limitations under the License.
 
 import logging
+import os
 from typing import Optional
 
 from nemoguardrails.actions import action
@@ -94,13 +95,22 @@ async def jailbreak_detection_model(
     jailbreak_config = llm_task_manager.config.rails.config.jailbreak_detection
 
     jailbreak_api_url = jailbreak_config.server_endpoint
-    nim_url = jailbreak_config.nim_url
-    nim_port = jailbreak_config.nim_port
+    nim_base_url = jailbreak_config.nim_base_url
+    nim_classification_path = jailbreak_config.nim_server_endpoint
+    if jailbreak_config.api_key_env_var is not None:
+        nim_auth_token = os.getenv(jailbreak_config.api_key_env_var)
+        if nim_auth_token is None:
+            log.warning(
+                "Specified a value for jailbreak config api_key_env var at %s but the environment variable was not set!"
+                % jailbreak_config.api_key_env_var
+            )
+    else:
+        nim_auth_token = None
 
     if context is not None:
         prompt = context.get("user_message", "")
 
-    if not jailbreak_api_url and not nim_url:
+    if not jailbreak_api_url and not nim_base_url:
         from nemoguardrails.library.jailbreak_detection.model_based.checks import (
             check_jailbreak,
             initialize_model,
@@ -109,14 +119,26 @@ async def jailbreak_detection_model(
         log.warning(
             "No jailbreak detection endpoint set. Running in-process, NOT RECOMMENDED FOR PRODUCTION."
         )
-        classifier = initialize_model()
-        jailbreak = check_jailbreak(prompt=prompt, classifier=classifier)
+        try:
+            jailbreak = check_jailbreak(prompt=prompt)
+            log.info(f"Local model jailbreak detection result: {jailbreak}")
+            return jailbreak["jailbreak"]
+        except RuntimeError as e:
+            log.error(f"Jailbreak detection model not available: {e}")
+            return False
+        except ImportError as e:
+            log.error(
+                f"Failed to import required dependencies for local model. Install scikit-learn and torch, or use NIM-based approach",
+                exc_info=e,
+            )
+            return False
 
-        return jailbreak["jailbreak"]
-
-    if nim_url:
+    if nim_base_url:
         jailbreak = await jailbreak_nim_request(
-            prompt=prompt, nim_url=nim_url, nim_port=nim_port
+            prompt=prompt,
+            nim_url=nim_base_url,
+            nim_auth_token=nim_auth_token,
+            nim_classification_path=nim_classification_path,
         )
     elif jailbreak_api_url:
         jailbreak = await jailbreak_detection_model_request(

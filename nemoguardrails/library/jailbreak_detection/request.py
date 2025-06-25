@@ -98,17 +98,25 @@ async def jailbreak_detection_model_request(
 async def jailbreak_nim_request(
     prompt: str,
     nim_url: str,
-    nim_port: int,
+    nim_auth_token: Optional[str],
+    nim_classification_path: str,
 ):
+    from urllib.parse import urljoin
+
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
     payload = {
         "input": prompt,
     }
 
-    endpoint = f"http://{nim_url}:{nim_port}/v1/classify"
+    endpoint = urljoin(nim_url, nim_classification_path)
     try:
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.post(endpoint, json=payload, timeout=30) as resp:
+                if nim_auth_token is not None:
+                    headers["Authorization"] = f"Bearer {nim_auth_token}"
+                async with session.post(
+                    endpoint, json=payload, headers=headers, timeout=30
+                ) as resp:
                     if resp.status != 200:
                         log.error(
                             f"NemoGuard JailbreakDetect NIM request failed with status {resp.status}"

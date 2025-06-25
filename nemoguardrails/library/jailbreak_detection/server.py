@@ -111,8 +111,7 @@ def run_all_heuristics(request: JailbreakHeuristicRequest):
 
 @app.post("/model")
 def run_model_check(request: JailbreakModelRequest):
-    classifier = mc.initialize_model()
-    result = mc.check_jailbreak(request.prompt, classifier=classifier)
+    result = mc.check_jailbreak(request.prompt)
     jailbreak = result["jailbreak"]
     score = result["score"]
     model_checks = {"jailbreak": jailbreak, "score": score}
