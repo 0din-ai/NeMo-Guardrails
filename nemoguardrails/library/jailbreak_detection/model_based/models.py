@@ -14,16 +14,16 @@
 # limitations under the License.
 
 import os
-import pickle
 from typing import Tuple
 
 import numpy as np
-import torch
-from transformers import AutoModel, AutoTokenizer
 
 
 class SnowflakeEmbed:
     def __init__(self):
+        import torch
+        from transformers import AutoModel, AutoTokenizer
+
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
         self.tokenizer = AutoTokenizer.from_pretrained(
             "snowflake/snowflake-arctic-embed-m-long"
@@ -71,6 +71,8 @@ class NvEmbedE5:
 
 class JailbreakClassifier:
     def __init__(self, random_forest_path: str):
+        import pickle
+
         self.embed = SnowflakeEmbed()
         with open(random_forest_path, "rb") as fd:
             self.classifier = pickle.load(fd)
