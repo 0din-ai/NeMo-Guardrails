@@ -104,7 +104,8 @@ class LLMRails:
 
         Args:
             config: A rails configuration.
-            llm: An optional LLM engine to use.
+            llm: An optional LLM engine to use. If provided, this will be used as the main LLM
+                and will take precedence over any main LLM specified in the config.
             verbose: Whether the logging should be verbose or not.
         """
         self.config = config
@@ -362,16 +363,44 @@ class LLMRails:
         Raises:
             ModelInitializationError: If any model initialization fails
         """
-        # If we already have a pre-configured one,
-        # we just need to register the LLM as an action param.
-        if self.llm is not None:
+        # If the user supplied an already-constructed LLM via the constructor we
+        # treat it as the *main* model, but **still** iterate through the
+        # configuration to load any additional models (e.g. `content_safety`).
+
+        if self.llm:
+            # If an LLM was provided via constructor, use it as the main LLM
+            # Log a warning if a main LLM is also specified in the config
+            if any(model.type == "main" for model in self.config.models):
+                log.warning(
+                    "Both an LLM was provided via constructor and a main LLM is specified in the config. "
+                    "The LLM provided via constructor will be used and the main LLM from config will be ignored."
+                )
             self.runtime.register_action_param("llm", self.llm)
-            return
+        else:
+            # Otherwise, initialize the main LLM from the config
+            main_model = next(
+                (model for model in self.config.models if model.type == "main"), None
+            )
+            if main_model:
+                self.llm = init_llm_model(
+                    model_name=main_model.model,
+                    provider_name=main_model.engine,
+                    mode="chat",
+                    kwargs=main_model.parameters or {},
+                )
+            else:
+                log.warning(
+                    "No main LLM specified in the config and no LLM provided via constructor."
+                )
 
         llms = dict()
 
         for llm_config in self.config.models:
             if llm_config.type == "embeddings":
+                continue
+
+            # If a constructor LLM is provided, skip initializing any 'main' model from config
+            if self.llm and llm_config.type == "main":
                 continue
 
             try:
@@ -405,12 +434,16 @@ class LLMRails:
                             provider_name,
                         )
 
-                if llm_config.type == "main" or len(self.config.models) == 1:
-                    self.llm = llm_model
-                    self.runtime.register_action_param("llm", self.llm)
+                if llm_config.type == "main":
+                    # If a main LLM was already injected, skip creating another
+                    # one. Otherwise, create and register it.
+                    if not self.llm:
+                        self.llm = llm_model
+                        self.runtime.register_action_param("llm", self.llm)
                 else:
                     model_name = f"{llm_config.type}_llm"
-                    setattr(self, model_name, llm_model)
+                    if not hasattr(self, model_name):
+                        setattr(self, model_name, llm_model)
                     self.runtime.register_action_param(
                         model_name, getattr(self, model_name)
                     )

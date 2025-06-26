@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from typing import Any, Dict, List, Optional, Union
+from unittest.mock import patch
 
 import pytest
 
@@ -740,3 +741,114 @@ def test_get_action_details_no_match(dummy_flows):
     with pytest.raises(ValueError) as exc_info:
         _get_action_details_from_flow_id("non_existing_flow", dummy_flows)
     assert "No action found for flow_id" in str(exc_info.value)
+
+
+@pytest.fixture
+def llm_config_with_main():
+    """Fixture providing a basic config with a main LLM."""
+    return RailsConfig.parse_object(
+        {
+            "models": [
+                {
+                    "type": "main",
+                    "engine": "fake",
+                    "model": "fake",
+                }
+            ],
+            "user_messages": {
+                "express greeting": ["Hello!"],
+            },
+            "flows": [
+                {
+                    "elements": [
+                        {"user": "express greeting"},
+                        {"bot": "express greeting"},
+                    ]
+                },
+            ],
+            "bot_messages": {
+                "express greeting": ["Hello! How are you?"],
+            },
+        }
+    )
+
+
+@pytest.mark.asyncio
+@patch(
+    "nemoguardrails.rails.llm.llmrails.init_llm_model",
+    return_value=FakeLLM(responses=["this should not be used"]),
+)
+async def test_llm_config_precedence(mock_init, llm_config_with_main):
+    """Test that LLM provided via constructor takes precedence over config's main LLM."""
+    injected_llm = FakeLLM(responses=["express greeting"])
+    llm_rails = LLMRails(config=llm_config_with_main, llm=injected_llm)
+    events = [{"type": "UtteranceUserActionFinished", "final_transcript": "Hello!"}]
+    new_events = await llm_rails.runtime.generate_events(events)
+    assert any(event.get("intent") == "express greeting" for event in new_events)
+    assert not any(
+        event.get("intent") == "this should not be used" for event in new_events
+    )
+
+
+@pytest.mark.asyncio
+@patch(
+    "nemoguardrails.rails.llm.llmrails.init_llm_model",
+    return_value=FakeLLM(responses=["this should not be used"]),
+)
+async def test_llm_config_warning(mock_init, llm_config_with_main, caplog):
+    """Test that a warning is logged when both constructor LLM and config main LLM are provided."""
+    injected_llm = FakeLLM(responses=["express greeting"])
+    caplog.clear()
+    _ = LLMRails(config=llm_config_with_main, llm=injected_llm)
+    warning_msg = "Both an LLM was provided via constructor and a main LLM is specified in the config"
+    assert any(warning_msg in record.message for record in caplog.records)
+
+
+@pytest.fixture
+def llm_config_with_multiple_models():
+    """Fixture providing a config with main LLM and content safety model."""
+    return RailsConfig.parse_object(
+        {
+            "models": [
+                {
+                    "type": "main",
+                    "engine": "fake",
+                    "model": "fake",
+                },
+                {
+                    "type": "content_safety",
+                    "engine": "fake",
+                    "model": "fake",
+                },
+            ],
+            "user_messages": {
+                "express greeting": ["Hello!"],
+            },
+            "flows": [
+                {
+                    "elements": [
+                        {"user": "express greeting"},
+                        {"bot": "express greeting"},
+                    ]
+                },
+            ],
+            "bot_messages": {
+                "express greeting": ["Hello! How are you?"],
+            },
+        }
+    )
+
+
+@pytest.mark.asyncio
+@patch(
+    "nemoguardrails.rails.llm.llmrails.init_llm_model",
+    return_value=FakeLLM(responses=["content safety response"]),
+)
+async def test_other_models_honored(mock_init, llm_config_with_multiple_models):
+    """Test that other model configurations are still honored when main LLM is provided via constructor."""
+    injected_llm = FakeLLM(responses=["express greeting"])
+    llm_rails = LLMRails(config=llm_config_with_multiple_models, llm=injected_llm)
+    assert hasattr(llm_rails, "content_safety_llm")
+    events = [{"type": "UtteranceUserActionFinished", "final_transcript": "Hello!"}]
+    new_events = await llm_rails.runtime.generate_events(events)
+    assert any(event.get("intent") == "express greeting" for event in new_events)
